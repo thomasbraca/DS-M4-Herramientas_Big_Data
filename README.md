@@ -180,42 +180,39 @@ Cuando probamos consultas con hive, recordar que esta base de datos sera integra
 ## 4) SQL
 
 La mejora en la velocidad de consulta que puede proporcionar un índice tiene el costo del procesamiento adicional para crear el índice y el espacio en disco para almacenar las referencias del índice.
-Se recomienda que los índices se basen en las columnas que utiliza en las condiciones de filtrado. El índice en la tabla puede degradar su rendimiento en caso de que no los esté utilizando.
-Crear índices en alguna de las tablas cargadas y probar los resultados:
+
+
+Provamos algunas consultas sin indices y tomamos nota del tiempo de ejecucion
 
 ```
-CREATE INDEX index_name
- ON TABLE base_table_name (col_name, ...)
- AS index_type
- [WITH DEFERRED REBUILD]
- [IDXPROPERTIES (property_name=property_value, ...)]
- [IN TABLE index_table_name]
- [ [ ROW FORMAT ...] STORED AS ...
- | STORED BY ... ]
- [LOCATION hdfs_path]
- [TBLPROPERTIES (...)]
- [COMMENT "index comment"];
+  SELECT IdProducto, SUM(Precio * Cantidad) FROM venta GROUP BY IdProducto;
 ```
-
-Ejemplo:
+![IdProducto 1](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/d926b981-1616-459f-b6ed-b688135ce1ec)
 
 ```
-hive> CREATE INDEX index_students ON TABLE students(id) 
- > AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler' 
- > WITH DEFERRED REBUILD ;
+  SELECT v.IdCliente, SUM(v.Precio * v.Cantidad) FROM venta v JOIN cliente c USING (IdCliente) WHERE c.Localidad = 'CIUDAD DE BUENOS AIRES' GROUP BY v.IdCliente;
+```
+![Join 1](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/a1956dac-6dab-4a89-ae08-9b919516f2c1)
+
+
+### Creamos los indices
+```
+  CREATE INDEX index_venta_producto ON TABLE venta(IdProducto) AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler' WITH DEFERRED REBUILD;
+  CREATE INDEX index_venta_cliente ON TABLE venta(IdCliente) AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler' WITH DEFERRED REBUILD;
+  CREATE INDEX index_cliente ON TABLE cliente(IdCliente) AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler' WITH DEFERRED REBUILD;
 ```
 
-ALTER INDEX index_name ON table_name [PARTITION partition_spec] REBUILD;
+Probamos nuevamente las consultas, ahora con indice
+```
+  SELECT IdProducto, SUM(Precio * Cantidad) FROM venta GROUP BY IdProducto;
+```
+![IdProducto 2](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/7e68ea65-1c9d-4185-ad5c-f8611f2c506f)
 
-Ejemplo:
 ```
-hive> ALTER INDEX index_students ON students REBUILD; 
+  SELECT v.IdCliente, SUM(v.Precio * v.Cantidad) FROM venta v JOIN cliente c USING (IdCliente) WHERE c.Localidad = 'CIUDAD DE BUENOS AIRES' GROUP BY v.IdCliente;
 ```
+![Join 2](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/45aa1c3f-12fc-4345-b497-ce259b89b77b)
 
-DROP INDEX [IF EXISTS] index_name ON table_name;
-```
-hive> DROP INDEX IF EXISTS index_students ON students; 
-```
 
 ## 5) No-SQL
 
