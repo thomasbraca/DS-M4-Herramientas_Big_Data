@@ -41,63 +41,141 @@ Para implementar ejecute
 
 ## 1) HDFS
 
-Se puede utilizar el entorno docker-compose-v1.yml
 
-Copiar los archivos ubicados en la carpeta Datasets, dentro del contenedor "namenode"
+De esta manera podemos evitar tener que usar 'sudo' constantemente:
+```
+  sudo -s
+```
+
+Clonamos el repositroio y ytilizamos el entorno docker-compose-v1.yml
+
+```
+  git clone https://github.com/thomasbraca/herramientas_big_data.git
+  cd DS-M4-herramientas_Big_Data/
+  sudo docker-compose -f docker-compose-vX.yml up -d
+```
+![1](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/97cbbd28-3709-4583-8b1e-56d0826ce9be)
+
+Copiamos los archivos ubicados en la carpeta Datasets, dentro del contenedor "namenode"
+
+```
+  docker cp Datasets/ namenode:/home/
+```
+
+![2](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/20ae2d3d-91dc-4af3-b7e5-152a711709ed)
+
+Nos ubicamos en el contenedor "namenode"
 
 ```
   sudo docker exec -it namenode bash
-  cd home
-  mkdir Datasets
-  exit
-  sudo docker cp <path><archivo> namenode:/home/Datasets/<archivo>
 ```
 
-Ubicarse en el contenedor "namenode"
-
-```
-  sudo docker exec -it namenode bash
-```
-
-Crear un directorio en HDFS llamado "/data".
+Creamos un directorio en HDFS llamado "/data".
 
 ```
   hdfs dfs -mkdir -p /data
 ```
 
-Copiar los archivos csv provistos a HDFS:
+Copiamos los archivos csv provistos a HDFS:
 ```
   hdfs dfs -put /home/Datasets/* /data
 ```
+![5](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/d17d4694-2478-4732-be05-57c5f4f32c27)
 
-Este proceso de creación de la carpeta data y copiado de los arhivos, debe poder ejecutarse desde un shell script.
+Podemos revisar los archivos en la interfaz de hadoop
 
-Nota: Busque dfs.blocksize y dfs.replication en http://<IP_Anfitrion>:9870/conf para encontrar los valores de tamaño de bloque y factor de réplica respectivamente entre otras configuraciones del sistema Hadoop.
+```
+  http://<IP>:9870
+```
+
+
+![6](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/70296cc8-74db-4a08-80bc-c79330cd44a9)
+![7](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/4b64a38f-af71-48ce-93d2-d63b6f6c64b4)
+![8](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/f8a22e28-5269-4208-a276-e0e689ddb7ca)
+
 
 ## 2) Hive
 
-Se puede utilizar el entorno docker-compose-v2.yml
+Utilizamos el entorno docker-compose-v2.yml
+RECORDATORIA: Bajar el contenedor anterior previamente
 
-Crear tablas en Hive, a partir de los csv ingestados en HDFS.
+![1](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/cb51cd36-fb48-42b0-ae54-ac0e765b7d38)
 
-Para esto, se puede ubicar dentro del contenedor correspondiente al servidor de Hive, y ejecutar desdea allí los scripts necesarios
+
+### Objetivo: Crear tablas en Hive, a partir de los csv ingestados en HDFS.
+
+Vamos a utlizar el script Paso02.hql para crear las tablas y ingresar los valores del punto anterior.
+Para esto, primero copiamos el archivo al servidor de Hive
 
 ```
-  sudo docker exec -it hive-server bash
+  docker cp ./Paso02.hql hive-server:/opt/
+```
+
+Luego accedemos al servidor Hive
+
+```
+  docker exec -it hive-server bash
+```
+Y una vez aqui, ejecutamos el script
+
+```
+  hive -f Paso02.hql
+```
+![2](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/77a83639-6580-4eca-872d-644decc32441)
+
+
+Podemos revisar que las tablas fueron creadas correctamente en hive
+
+Para acceder a hive:
+```
   hive
 ```
 
-Este proceso de creación las tablas debe poder ejecutarse desde un shell script.
+Aqui podemos provar consultas, recordar empezar con:
 
-Nota: Para ejecutar un script de Hive, requiere el comando:
 ```
-  hive -f <script.hql>
+  use integrador;
 ```
+
+### Ejemplos:
+
+```
+  show tables;
+```
+```
+  SELECT * FROM cliente LIMIT 5;
+```
+Nota: Utilziar LIMIT, ya que hay muchos valores en cada tabla
+
+![3](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/ff80bea7-1ef4-4dc6-94e0-9e75ed0f63fd)
 
 ## 3) Formatos de Almacenamiento
 
-Las tablas creadas en el punto 2 a partir de archivos en formato csv, deben ser almacenadas en formato Parquet + Snappy.
-Tener en cuenta además de aplicar particiones para alguna de las tablas.
+### Las tablas creadas en el punto 2 a partir de archivos en formato csv, deben ser almacenadas en formato Parquet + Snappy.
+
+Empezamos copiando el archivo Paso03.hql a hive, igual que en el punto anterior
+```
+  docker cp ./Paso02.hql hive-server:/opt/
+```
+
+Y lo ejecutamos
+```
+  docker exec -it hive-server bash
+  hive -f Paso02.hql
+```
+![1](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/e41ca8e0-5291-4877-be8a-85668f5d8e1b)
+
+Cuando probamos consultas con hive, recordar que esta base de datos sera integrador2
+
+
+```
+  hive
+```
+```
+  use integrador2;
+```
+![2](https://github.com/thomasbraca/DS-M4-Herramientas_Big_Data/assets/164891153/dd687c5c-c17b-47f8-950d-d066a4c3b44a)
+
 
 ## 4) SQL
 
